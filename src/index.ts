@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes";
 import appointmentRoutes from "./routes/appointmentRoutes";
+import medicalRecordRoutes from "./routes/medicalRecordRoutes";
 import { authMiddleware } from "./middlewares/auth";
 import connectDB from "./config/db";
 
@@ -14,6 +15,7 @@ app.use(express.json());
 
 app.use("/auth", authRoutes);
 app.use("/appointments", authMiddleware, appointmentRoutes);
+app.use("/medical-records", authMiddleware, medicalRecordRoutes);
 
 const PORT = process.env.PORT || 5000;
 
