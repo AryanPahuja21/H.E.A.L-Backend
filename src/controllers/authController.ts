@@ -5,7 +5,7 @@ import User from "../models/User";
 
 const JWT_SECRET = process.env.JWT_SECRET || "secret";
 
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response): Promise<any> => {
   try {
     const { name, email, password, role, specialization, profileImageUrl } =
       req.body;
@@ -35,7 +35,7 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<any> => {
   try {
     const { email, password } = req.body;
 
