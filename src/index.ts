@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import http from "http";
 import authRoutes from "./routes/authRoutes";
+import userRoutes from "./routes/users";
 import appointmentRoutes from "./routes/appointmentRoutes";
 import medicalRecordRoutes from "./routes/medicalRecordRoutes";
 import { authMiddleware } from "./middlewares/auth";
@@ -28,13 +29,14 @@ const socketService = new SocketService(server);
 
 // Configure API routes
 app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
 app.use("/appointments", authMiddleware, appointmentRoutes);
 app.use("/medical-records", authMiddleware, medicalRecordRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     activeConnections: socketService.getActiveConnectionsCount()
   });
@@ -56,9 +58,9 @@ connectDB().then(() => {
 // Handle graceful shutdown
 const gracefulShutdown = () => {
   console.log('Shutting down gracefully...');
-  
+
   socketService.closeAllConnections();
-  
+
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
