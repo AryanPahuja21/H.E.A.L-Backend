@@ -1,7 +1,7 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { LiveClient, LiveTranscriptionEvents } from "@deepgram/sdk";
-import { createLiveTranscription } from "./config/deepgram";
+import { createLiveTranscription } from "../config/deepgram";
 
 export interface ActiveConnection {
     socket: Socket;

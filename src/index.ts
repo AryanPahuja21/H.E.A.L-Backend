@@ -6,9 +6,11 @@ import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/users";
 import appointmentRoutes from "./routes/appointmentRoutes";
 import medicalRecordRoutes from "./routes/medicalRecordRoutes";
+import conversationRoutes from "./routes/conversationRoutes";
 import { authMiddleware } from "./middlewares/auth";
 import connectDB from "./config/db";
-import SocketService from "./socket";
+import SocketService from "./socket_service/transcription";
+import ChatSocketService from "./socket_service/conversation";
 
 dotenv.config();
 
@@ -24,12 +26,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Initialize socket service
+// Initialize socket services
 const socketService = new SocketService(server);
+const chatSocketService = new ChatSocketService(server);
 
 // Configure API routes
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
+app.use("/conversations", conversationRoutes);
 app.use("/appointments", authMiddleware, appointmentRoutes);
 app.use("/medical-records", authMiddleware, medicalRecordRoutes);
 
@@ -38,7 +42,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    activeConnections: socketService.getActiveConnectionsCount()
+    activeConnections: socketService.getActiveConnectionsCount(),
+    activeChatUsers: chatSocketService.getActiveUsersCount()
   });
 });
 
@@ -60,6 +65,7 @@ const gracefulShutdown = () => {
   console.log('Shutting down gracefully...');
 
   socketService.closeAllConnections();
+  chatSocketService.closeAllConnections();
 
   server.close(() => {
     console.log('Server closed');
