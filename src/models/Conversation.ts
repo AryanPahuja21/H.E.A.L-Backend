@@ -1,12 +1,24 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-const ConversationSchema = new mongoose.Schema(
-  {
-    roomId : { type: String, required: true },
-    transcript: { type: String, required: true },
+const ConversationSchema = new Schema({
+  participants: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }],
+  lastMessage: {
+    content: String,
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    senderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
   }
-    ,
-    { timestamps: true }
-);
+}, { timestamps: true });
 
-export default mongoose.model("Conversation", ConversationSchema);
+ConversationSchema.index({ participants: 1 });
+
+export default mongoose.model('Conversation', ConversationSchema);

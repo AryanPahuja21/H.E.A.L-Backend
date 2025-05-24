@@ -24,9 +24,9 @@ export const authMiddleware = async (
 
     const token = authHeader.split(" ")[1];
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
 
-    const user = await User.findById(decoded.userId).select("-password");
+    const user = await User.findById(decoded.id).select("-password");
     if (!user) {
       res.status(401).json({ message: "User not found" });
       return;
