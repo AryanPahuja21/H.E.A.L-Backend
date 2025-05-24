@@ -15,7 +15,7 @@ app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/appointments", authMiddleware, appointmentRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 
 connectDB().then(() => {
   app.listen(PORT, () =>
