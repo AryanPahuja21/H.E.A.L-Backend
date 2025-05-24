@@ -1,12 +1,12 @@
-const { Client, Environment } = require("square");
+const { SquareClient } = require("square");
 require("dotenv").config();
 
-const client = new Client({
+const client = new SquareClient({
   accessToken: process.env.SQUARE_ACCESS_TOKEN,
   environment:
     process.env.SQUARE_ENVIRONMENT === "production"
-      ? Environment.Production
-      : Environment.Sandbox,
+      ? "production"
+      : "sandbox",
 });
 
 const locationId = process.env.SQUARE_LOCATION_ID;
