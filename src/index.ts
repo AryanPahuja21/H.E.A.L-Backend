@@ -12,6 +12,7 @@ import { authMiddleware } from "./middlewares/auth";
 import connectDB from "./config/db";
 import SocketService from "./socket_service/transcription";
 import ChatSocketService from "./socket_service/conversation";
+import path from "path";
 
 dotenv.config();
 
@@ -28,6 +29,10 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(
+  "/medical-records/files",
+  express.static(path.join(__dirname, "../uploads/medical-records"))
+);
 
 // Initialize socket services
 const socketService = new SocketService(server);
