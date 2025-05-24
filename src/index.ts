@@ -45,7 +45,7 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/conversations", conversationRoutes);
 app.use("/appointments", appointmentRoutes);
-app.use("/medical-records", authMiddleware, medicalRecordRoutes);
+app.use("/medical-records", medicalRecordRoutes);
 app.use("/payments", authMiddleware, paymentRoutes);
 app.use("/transcriptions", conversationTransRoutes);
 app.use("/prescriptions", prescriptionRoutes);

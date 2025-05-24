@@ -4,12 +4,11 @@ import {
   deleteMedicalRecord,
   getRecordsByPatient,
 } from "../controllers/medicalRecordController";
-import { authMiddleware } from "../middlewares/auth";
 
 const router = Router();
 
-router.post("/", authMiddleware, createMedicalRecord);
-router.get("/:patientId", authMiddleware, getRecordsByPatient);
-router.delete("/:recordId", authMiddleware, deleteMedicalRecord);
+router.post("/", createMedicalRecord);
+router.get("/:patientId", getRecordsByPatient);
+router.delete("/:recordId", deleteMedicalRecord);
 
 export default router;
