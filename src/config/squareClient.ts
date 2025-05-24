@@ -1,14 +1,14 @@
 const { Client, environments } = require("square");
 require("dotenv").config();
 
-const client = new Client({
+export const squareClient = new Client({
   accessToken: process.env.SQUARE_ACCESS_TOKEN,
   environment: environments.sandbox,
 });
 
 async function getLocations() {
   try {
-    const response = await client.locationsApi.listLocations();
+    const response = await squareClient.locationsApi.listLocations();
     const locations = response.result.locations;
 
     if (locations && locations.length > 0) {

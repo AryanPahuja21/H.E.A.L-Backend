@@ -21,7 +21,8 @@
     "mongoose": "^8.15.0",
     "nodemon": "^3.1.10",
     "socket.io": "^4.8.1",
-    "square": "^42.3.0"
+    "square": "^42.3.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
