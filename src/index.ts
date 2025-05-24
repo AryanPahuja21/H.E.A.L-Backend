@@ -2,7 +2,9 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import http from "http";
+import authRoutes from "./routes/authRoutes";
 import appointmentRoutes from "./routes/appointmentRoutes";
+import medicalRecordRoutes from "./routes/medicalRecordRoutes";
 import { authMiddleware } from "./middlewares/auth";
 import connectDB from "./config/db";
 import { Server } from "socket.io";
@@ -20,7 +22,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Socket.IO setup
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -30,14 +31,13 @@ const io = new Server(server, {
   transports: ['websocket', 'polling']
 });
 
-// Deepgram setup
 const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
 if (!deepgramApiKey) {
   throw new Error("DEEPGRAM_API_KEY environment variable is not set");
 }
 const deepgram = createClient(deepgramApiKey);
 
-// Store active connections and their transcription instances
+
 interface ActiveConnection {
   socket: any;
   deepgramLive: LiveClient | null;
@@ -53,7 +53,6 @@ io.on('connection', (socket) => {
   let isTranscribing = false;
   let connectionTimeout: NodeJS.Timeout | null = null;
 
-  // Store this connection
   activeConnections.set(socket.id, {
     socket,
     deepgramLive: null,
@@ -62,12 +61,10 @@ io.on('connection', (socket) => {
 
   socket.on('audio_chunk', async (chunk) => {
     try {
-      // Initialize Deepgram connection if not already done
       if (!deepgramLive && !isTranscribing) {
         console.log(`Starting transcription for client ${socket.id}`);
         isTranscribing = true;
 
-        // Simplified and more reliable options
         const deepgramLiveOptions = {
           model: "nova-2",
           language: "en-US",
@@ -83,21 +80,19 @@ io.on('connection', (socket) => {
         try {
           deepgramLive = deepgram.listen.live(deepgramLiveOptions);
           
-          // Store the instance
           const connection = activeConnections.get(socket.id);
           if (connection) {
             connection.deepgramLive = deepgramLive;
             connection.isTranscribing = true;
           }
 
-          // Set up a timeout for connection establishment
           connectionTimeout = setTimeout(() => {
             console.error(`Deepgram connection timeout for client ${socket.id}`);
             socket.emit('transcription_error', 'Connection timeout');
             cleanupConnection();
-          }, 10000); // 10 seconds timeout
+          }, 10000); 
 
-          // Set up event handlers
+          
           deepgramLive.on(LiveTranscriptionEvents.Open, () => {
             console.log(`Deepgram connection opened for client ${socket.id}`);
             if (connectionTimeout) {
@@ -121,7 +116,7 @@ io.on('connection', (socket) => {
           deepgramLive.on(LiveTranscriptionEvents.Error, (error) => {
             console.error(`Deepgram error for client ${socket.id}:`, error);
             
-            // More detailed error logging
+            
             if (error.message) {
               console.error(`Deepgram error message: ${error.message}`);
             }
@@ -142,8 +137,6 @@ io.on('connection', (socket) => {
             console.log(`Deepgram metadata for client ${socket.id}:`, metadata);
           });
 
-          // Don't wait for connection - start sending data immediately
-          // The connection will be established asynchronously
 
         } catch (err) {
           console.error(`Failed to create Deepgram live transcription for client ${socket.id}:`, err);
@@ -153,10 +146,10 @@ io.on('connection', (socket) => {
         }
       }
 
-      // Send audio data to Deepgram
+      
       if (deepgramLive && isTranscribing) {
         try {
-          // Ensure chunk is properly formatted
+          
           if (chunk instanceof ArrayBuffer) {
             deepgramLive.send(chunk);
           } else if (chunk.buffer instanceof ArrayBuffer) {
@@ -194,7 +187,7 @@ io.on('connection', (socket) => {
     
     isTranscribing = false;
 
-    // Update stored connection
+    
     const connection = activeConnections.get(socket.id);
     if (connection) {
       connection.deepgramLive = null;
@@ -218,10 +211,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// API Routes
-app.use("/appointments", authMiddleware, appointmentRoutes);
 
-// Health check endpoint
+app.use("/auth", authRoutes);
+app.use("/appointments", authMiddleware, appointmentRoutes);
+app.use("/medical-records", authMiddleware, medicalRecordRoutes);
+
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -230,9 +224,12 @@ app.get('/health', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 
-// Start server
+
+
+
+
 connectDB().then(() => {
   server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
@@ -243,11 +240,11 @@ connectDB().then(() => {
   process.exit(1);
 });
 
-// Graceful shutdown
+
 const gracefulShutdown = () => {
   console.log('Shutting down gracefully...');
   
-  // Close all active Deepgram connections
+  
   activeConnections.forEach((connection, socketId) => {
     if (connection.deepgramLive) {
       try {
