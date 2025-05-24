@@ -9,6 +9,7 @@ import { authMiddleware } from "./middlewares/auth";
 import connectDB from "./config/db";
 import { Server } from "socket.io";
 import { createClient, LiveTranscriptionEvents, LiveClient } from "@deepgram/sdk";
+import Conversation from "./models/Conversation";
 
 dotenv.config();
 
@@ -106,7 +107,7 @@ io.on('connection', (socket) => {
               const transcript = data?.channel?.alternatives?.[0]?.transcript;
               if (transcript && transcript.trim() !== '') {
                 console.log(`Transcript for ${socket.id}:`, transcript);
-                socket.emit('transcript', transcript);
+socket.emit('transcript', { user: socket.id || 'Unknown', text: transcript });
               }
             } catch (err) {
               console.error('Error processing transcript:', err);
@@ -209,12 +210,27 @@ io.on('connection', (socket) => {
   socket.on('error', (error) => {
     console.error(`Socket error for client ${socket.id}:`, error);
   });
+  socket.on('save_conversation', async ({ roomId, conversation }) => {
+    console.log(`Saving conversation for room ${roomId}`);
+    console.log('Conversation data:', conversation);
+    await Conversation.create({ roomId, transcript: conversation });
+  });
 });
 
 
 app.use("/auth", authRoutes);
 app.use("/appointments", authMiddleware, appointmentRoutes);
 app.use("/medical-records", authMiddleware, medicalRecordRoutes);
+app.get("/conversation", (req, res) => {
+  Conversation.find({})
+    .then((conversations) => {
+      res.json(conversations);
+    })
+    .catch((err) => {
+      console.error('Error fetching conversations:', err);
+      res.status(500).json({ error: 'Failed to fetch conversations' });
+    });
+});
 
 app.get('/health', (req, res) => {
   res.json({ 
