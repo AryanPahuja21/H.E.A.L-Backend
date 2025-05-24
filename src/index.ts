@@ -13,6 +13,7 @@ import connectDB from "./config/db";
 import SocketService from "./socket_service/transcription";
 import ChatSocketService from "./socket_service/conversation";
 import path from "path";
+import conversationTransRoutes from "./routes/conversationTransRoutes";
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use("/conversations", conversationRoutes);
 app.use("/appointments", authMiddleware, appointmentRoutes);
 app.use("/medical-records", authMiddleware, medicalRecordRoutes);
 app.use("/payments", authMiddleware, paymentRoutes);
+app.use("/transcriptions", conversationTransRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
