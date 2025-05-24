@@ -7,6 +7,7 @@ import userRoutes from "./routes/users";
 import appointmentRoutes from "./routes/appointmentRoutes";
 import medicalRecordRoutes from "./routes/medicalRecordRoutes";
 import conversationRoutes from "./routes/conversationRoutes";
+import prescriptionRoutes from "./routes/prescriptionRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import { authMiddleware } from "./middlewares/auth";
 import connectDB from "./config/db";
@@ -47,6 +48,7 @@ app.use("/appointments", appointmentRoutes);
 app.use("/medical-records", authMiddleware, medicalRecordRoutes);
 app.use("/payments", authMiddleware, paymentRoutes);
 app.use("/transcriptions", conversationTransRoutes);
+app.use("/prescriptions", prescriptionRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
