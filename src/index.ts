@@ -14,6 +14,7 @@ import SocketService from "./socket_service/transcription";
 import ChatSocketService from "./socket_service/conversation";
 import path from "path";
 import conversationTransRoutes from "./routes/conversationTransRoutes";
+import aiResponse from "./routes/aiResponse";
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use("/medical-records", medicalRecordRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/transcriptions", conversationTransRoutes);
 app.use("/prescriptions", prescriptionRoutes);
+app.use("/ai-response", aiResponse);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
