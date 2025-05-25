@@ -3,7 +3,6 @@ import { Server, Socket } from "socket.io";
 import { LiveClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import { createLiveTranscription } from "../config/deepgram";
 import ConversationFromTrans from "../models/ConversationFromTrans";
-
 export interface ActiveConnection {
     socket: Socket;
     deepgramLive: LiveClient | null;
