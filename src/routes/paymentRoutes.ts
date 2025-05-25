@@ -36,7 +36,6 @@ router.post("/makePayment", async (req, res) => {
       )
     );
 
-    // Save to MongoDB
     const newPayment = new Payment({
       doctorId,
       amount,
@@ -62,4 +61,51 @@ router.post("/makePayment", async (req, res) => {
     });
   }
 });
+
+router.get("/:userId/history", async (req, res): Promise<any> => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    const payments = await Payment.find({
+      $or: [{ patientId: userId }, { doctorId: userId }],
+    })
+      .populate("patientId", "name email profileImageUrl")
+      .populate("doctorId", "name email specialization profileImageUrl")
+      .sort({ date: -1 });
+
+    res.json(payments);
+  } catch (error) {
+    console.error("Error fetching payment history:", error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
+router.get("/totalPaidByPatient/:patientId", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    const payments = await Payment.find({
+      patientId,
+      status: "completed",
+    });
+
+    const totalPaid = payments.reduce(
+      (sum, payment) => sum + payment.amount,
+      0
+    );
+
+    res.json({
+      success: true,
+      totalPaid,
+    });
+  } catch (error) {
+    console.error("Error fetching total payments by patient:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
 export default router;
