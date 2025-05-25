@@ -2,24 +2,27 @@ import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { LiveClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import { createLiveTranscription } from "../config/deepgram";
-import Conversation from "../models/Conversation";
 import ConversationFromTrans from "../models/ConversationFromTrans";
+import { string } from "square/core/schemas";
 
 export interface ActiveConnection {
     socket: Socket;
     deepgramLive: LiveClient | null;
     isTranscribing: boolean;
+    userName?: string; // Add userName to track user identity
+    roomId?: string;   // Add roomId to track room
 }
 
 class SocketService {
     static closeAllConnections() {
-      throw new Error("Method not implemented.");
+        throw new Error("Method not implemented.");
     }
     static getActiveConnectionsCount() {
-      throw new Error("Method not implemented.");
+        throw new Error("Method not implemented.");
     }
     private io: Server;
     private activeConnections = new Map<string, ActiveConnection>();
+    private roomConversations = new Map<string, string>(); // <--- buffer for each room
 
     constructor(server: HttpServer) {
         this.io = new Server(server, {
@@ -42,10 +45,29 @@ class SocketService {
             let isTranscribing = false;
             let connectionTimeout: NodeJS.Timeout | null = null;
 
+            // Initialize connection without user data first
             this.activeConnections.set(socket.id, {
                 socket,
                 deepgramLive: null,
                 isTranscribing: false
+            });
+
+            socket.on('join_room', ({ roomId, user }) => {
+                console.log(`User ${user} joining room ${roomId}`);
+                
+                // Store user data in socket.data AND in activeConnections
+                socket.data.userName = user;
+                socket.data.roomId = roomId;
+                socket.join(roomId);
+
+                // Update the active connection with user info
+                const connection = this.activeConnections.get(socket.id);
+                if (connection) {
+                    connection.userName = user;
+                    connection.roomId = roomId;
+                }
+
+                console.log(`Successfully joined: ${user} in room ${roomId}`);
             });
 
             socket.on('audio_chunk', async (chunk) => {
@@ -83,9 +105,28 @@ class SocketService {
                                 try {
                                     const transcript = data?.channel?.alternatives?.[0]?.transcript;
                                     if (transcript && transcript.trim() !== '') {
-                                        console.log(`Transcript for ${socket.id}:`, transcript);
-                                        // When you emit the transcript, do this:
-                                        socket.emit('transcript', { user: socket.id || 'Unknown', text: transcript });
+                                        // Get user info from both sources for reliability
+                                        const connection = this.activeConnections.get(socket.id);
+                                        const userName = connection?.userName || socket.data.userName;
+                                        const roomId = connection?.roomId || socket.data.roomId;
+                                        
+                                        console.log(`Transcript received - User: ${userName}, Room: ${roomId}, Text: ${transcript}`);
+                                        
+                                        if (userName && roomId) {
+                                            const line = `${userName}: ${transcript}`;
+                                            // Append to room buffer
+                                            const prev = this.roomConversations.get(roomId) || '';
+                                            this.roomConversations.set(roomId, prev ? `${prev}\n${line}` : line);
+                                            // Emit to all in room with user and text separately
+                                            this.io.to(roomId).emit('transcript', { 
+                                                user: userName, 
+                                                text: transcript,
+                                                socketId: socket.id // Optional: for debugging
+                                            });
+                                            console.log(`Emitted transcript to room ${roomId}: ${userName}: ${transcript}`);
+                                        } else {
+                                            console.warn(`Missing user info - userName: ${userName}, roomId: ${roomId}`);
+                                        }
                                     }
                                 } catch (err) {
                                     console.error('Error processing transcript:', err);
@@ -94,14 +135,6 @@ class SocketService {
 
                             deepgramLive.on(LiveTranscriptionEvents.Error, (error) => {
                                 console.error(`Deepgram error for client ${socket.id}:`, error);
-
-                                if (error.message) {
-                                    console.error(`Deepgram error message: ${error.message}`);
-                                }
-                                if (error.code) {
-                                    console.error(`Deepgram error code: ${error.code}`);
-                                }
-
                                 socket.emit('transcription_error', error.message || 'Transcription service error');
                                 this.cleanupConnection(socket.id, deepgramLive, connectionTimeout);
                                 deepgramLive = null;
@@ -158,22 +191,64 @@ class SocketService {
                 isTranscribing = false;
             });
 
-            socket.on('disconnect', (reason) => {
+            // Add handler for manual conversation saving
+            socket.on('save_conversation', async ({ roomId, conversation }) => {
+                try {
+                    if (roomId && conversation) {
+                        await ConversationFromTrans.create({ roomId, transcript: conversation });
+                        console.log(`Manually saved conversation for room ${roomId}`);
+                        socket.emit('conversation_saved', { success: true });
+                    }
+                } catch (error) {
+                    console.error('Error saving conversation:', error);
+                    socket.emit('conversation_saved', { success: false, error: (error as Error).message });
+                }
+            });
+
+            socket.on('disconnect', async (reason) => {
                 console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
                 this.cleanupConnection(socket.id, deepgramLive, connectionTimeout);
+                
+                const connection = this.activeConnections.get(socket.id);
+                const roomId = connection?.roomId || socket.data.roomId;
+                
                 this.activeConnections.delete(socket.id);
                 deepgramLive = null;
                 isTranscribing = false;
+
+                // Save conversation if room is empty
+                if (roomId) {
+                    const room = this.io.sockets.adapter.rooms.get(roomId);
+                    if (!room || room.size === 0) {
+                        const conversation = this.roomConversations.get(roomId);
+                        if (conversation && conversation.trim()) {
+                            try {
+                                const existingConversation = await ConversationFromTrans.find({ roomId });
+                                if (existingConversation.length > 0) {
+                                    console.log(`Conversation already exists for room ${roomId}, skipping save.`);
+                                    // added new conversation if exist 
+                                    await ConversationFromTrans.updateOne(
+                                        { roomId },
+                                        { $push: { transcript: conversation } }
+                                    );
+                                    
+                                }
+                                else{
+                                await ConversationFromTrans.create({ roomId, transcript: conversation });
+                                }
+                                this.roomConversations.delete(roomId);
+                                console.log(`Saved combined conversation for room ${roomId}`);
+                            } catch (error) {
+                                console.error(`Error saving conversation for room ${roomId}:`, error);
+                            }
+                        }
+                    }
+                }
             });
 
             socket.on('error', (error) => {
                 console.error(`Socket error for client ${socket.id}:`, error);
             });
-            socket.on('save_conversation', async ({ roomId, conversation }) => {
-    console.log(`Saving conversation for room ${roomId}`);
-    console.log('Conversation data:', conversation);
-    await ConversationFromTrans.create({ roomId, transcript: conversation });
-  });
         });
     }
 
