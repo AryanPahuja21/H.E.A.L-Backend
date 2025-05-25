@@ -9,7 +9,6 @@ import medicalRecordRoutes from "./routes/medicalRecordRoutes";
 import conversationRoutes from "./routes/conversationRoutes";
 import prescriptionRoutes from "./routes/prescriptionRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
-import { authMiddleware } from "./middlewares/auth";
 import connectDB from "./config/db";
 import SocketService from "./socket_service/transcription";
 import ChatSocketService from "./socket_service/conversation";

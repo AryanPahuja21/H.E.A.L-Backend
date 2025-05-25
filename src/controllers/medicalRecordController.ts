@@ -30,15 +30,11 @@ export const createMedicalRecord = async (
   res: Response
 ): Promise<any> => {
   try {
-    const { title, description, type, doctorId, patientId, date } = req.body;
+    const { title, description, type, doctorId, patientId, date, fileUrl } = req.body;
 
     if (!title || !description || !type || !doctorId || !patientId || !date) {
       return res.status(400).json({ error: "Missing required fields" }); // Ensure JSON response
     }
-
-    const fileUrl = req.file
-      ? `/medical-records/${req.file.filename}`
-      : undefined;
 
     const newRecord = new MedicalRecord({
       title,
@@ -98,7 +94,7 @@ export const deleteMedicalRecord = async (
         path.basename(deletedRecord.fileUrl)
       );
       if (fs.existsSync(filePath)) {
-        fs.unlink(filePath, () => {});
+        fs.unlink(filePath, () => { });
       }
     }
 
@@ -111,4 +107,37 @@ export const deleteMedicalRecord = async (
       .status(500)
       .json({ message: "Error deleting medical record", error: err });
   }
+};
+
+export const uploadFile = (req: Request, res: Response, next: any) => {
+  upload(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({
+        error: "File upload error",
+        details: err.message
+      });
+    } else if (err) {
+      return res.status(500).json({
+        error: "Unknown error during file upload",
+        details: err.message
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        error: "Please provide a file to upload"
+      });
+    }
+
+    const fileUrl = `/medical-records/files/${req.file.filename}`;
+
+    res.status(200).json({
+      message: "File uploaded successfully",
+      fileUrl,
+      fileName: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
+  });
 };
