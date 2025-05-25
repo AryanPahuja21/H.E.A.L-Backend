@@ -28,19 +28,16 @@ router.post("/makePayment", async (req, res) => {
       },
       locationId: process.env.SQUARE_LOCATION_ID,
     });
-    ``;
 
-    const paymentResult = {
-      ...paymentResponse.result.payment,
-      amountMoney: {
-        ...paymentResponse.result.payment?.amountMoney,
-        amount: paymentResponse.result.payment?.amountMoney?.amount?.toString(),
-      },
-    };
+    const serializablePayment = JSON.parse(
+      JSON.stringify(paymentResponse.result.payment, (key, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      )
+    );
 
     res.json({
       success: true,
-      payment: paymentResult,
+      payment: serializablePayment,
     });
   } catch (error: any) {
     console.error("Payment processing error:", error);
