@@ -109,6 +109,46 @@ export const deleteMedicalRecord = async (
   }
 };
 
+export const updateMedicalRecord = async (
+  req: Request,
+  res: Response
+): Promise<any> => {
+  try {
+    const { recordId } = req.params;
+    const { title, description, type, doctorId, patientId, date, fileUrl } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(recordId)) {
+      return res.status(400).json({ error: "Invalid record ID format" });
+    }
+
+    const updatedRecord = await MedicalRecord.findByIdAndUpdate(
+      recordId,
+      {
+        title,
+        description,
+        type,
+        doctorId,
+        patientId,
+        date: date ? new Date(date) : undefined,
+        fileUrl,
+      },
+      { new: true, runValidators: true }
+    ).populate("doctorId");
+
+    if (!updatedRecord) {
+      return res.status(404).json({ error: "Medical record not found" });
+    }
+
+    res.status(200).json(updatedRecord);
+  } catch (error: any) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Server error while updating medical record",
+      details: error.message,
+    });
+  }
+};
+
 export const uploadFile = (req: Request, res: Response, next: any) => {
   upload(req, res, function (err) {
     if (err instanceof multer.MulterError) {
