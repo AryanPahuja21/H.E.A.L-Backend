@@ -1,6 +1,7 @@
 import express from "express";
 import { randomUUID } from "crypto";
 import { Client, Environment } from "square/legacy";
+import { Payment } from "../models/Payment";
 
 const router = express.Router();
 const squareClient = new Client({
@@ -17,7 +18,7 @@ router.get("/square-config", (req, res) => {
 
 router.post("/makePayment", async (req, res) => {
   try {
-    const { sourceId, amount, currency } = req.body;
+    const { sourceId, amount, currency, doctorId, type, method } = req.body;
 
     const paymentResponse = await squareClient.paymentsApi.createPayment({
       idempotencyKey: randomUUID(),
@@ -35,9 +36,22 @@ router.post("/makePayment", async (req, res) => {
       )
     );
 
+    // Save to MongoDB
+    const newPayment = new Payment({
+      doctorId,
+      amount,
+      date: new Date(),
+      status: "completed",
+      type,
+      method,
+    });
+
+    await newPayment.save();
+
     res.json({
       success: true,
       payment: serializablePayment,
+      savedPayment: newPayment,
     });
   } catch (error: any) {
     console.error("Payment processing error:", error);
@@ -48,5 +62,4 @@ router.post("/makePayment", async (req, res) => {
     });
   }
 });
-
 export default router;
