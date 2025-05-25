@@ -1,28 +1,55 @@
-import { Router } from "express";
-import { makePayment } from "../controllers/paymentController";
+import express from "express";
+import { randomUUID } from "crypto";
+import { Client, Environment } from "square/legacy";
 
-const router = Router();
+const router = express.Router();
+const squareClient = new Client({
+  accessToken: process.env.SQUARE_ACCESS_TOKEN,
+  environment: Environment.Sandbox,
+});
 
 router.get("/square-config", (req, res) => {
+  res.json({
+    applicationId: process.env.SQUARE_APPLICATION_ID,
+    locationId: process.env.SQUARE_LOCATION_ID,
+  });
+});
+
+router.post("/makePayment", async (req, res) => {
   try {
-    if (!process.env.SQUARE_APPLICATION_ID || !process.env.SQUARE_LOCATION_ID) {
-      throw new Error("Square configuration not set");
-    }
+    const { sourceId, amount, currency } = req.body;
+
+    const paymentResponse = await squareClient.paymentsApi.createPayment({
+      idempotencyKey: randomUUID(),
+      sourceId: sourceId,
+      amountMoney: {
+        amount: BigInt(amount),
+        currency: currency || "USD",
+      },
+      locationId: process.env.SQUARE_LOCATION_ID,
+    });
+    ``;
+
+    const paymentResult = {
+      ...paymentResponse.result.payment,
+      amountMoney: {
+        ...paymentResponse.result.payment?.amountMoney,
+        amount: paymentResponse.result.payment?.amountMoney?.amount?.toString(),
+      },
+    };
 
     res.json({
       success: true,
-      applicationId: process.env.SQUARE_APPLICATION_ID,
-      locationId: process.env.SQUARE_LOCATION_ID,
+      payment: paymentResult,
     });
   } catch (error: any) {
-    console.error("Square config error:", error);
+    console.error("Payment processing error:", error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error:
+        error.errors?.map((e: any) => e.detail).join(", ") || "Payment failed",
     });
   }
 });
-
-router.post("/makePayment", makePayment);
 
 export default router;
