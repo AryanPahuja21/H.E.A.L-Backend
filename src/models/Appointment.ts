@@ -7,6 +7,7 @@ export interface IAppointment extends Document {
   duration: number;
   type: "video" | "audio" | "inperson";
   isUrgent?: boolean;
+  status: "scheduled" | "completed" | "cancelled";
 }
 
 const appointmentSchema = new Schema<IAppointment>({
@@ -16,6 +17,11 @@ const appointmentSchema = new Schema<IAppointment>({
   duration: { type: Number, required: true },
   type: { type: String, enum: ["video", "audio", "inperson"], required: true },
   isUrgent: { type: Boolean, default: false },
+  status: {
+    type: String,
+    enum: ["scheduled", "completed", "cancelled"],
+    default: "scheduled"
+  }
 });
 
 export const Appointment = mongoose.model<IAppointment>(
