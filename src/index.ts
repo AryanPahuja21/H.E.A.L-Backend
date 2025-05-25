@@ -25,13 +25,14 @@ const server = http.createServer(app);
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "DELETE","PUT"],
+    methods: ["GET", "POST", "DELETE", "PUT"],
     credentials: true,
   })
 );
 app.use(express.json());
 app.use(
   "/medical-records/files",
+  cors(),
   express.static(path.join(__dirname, "../uploads/medical-records"))
 );
 
