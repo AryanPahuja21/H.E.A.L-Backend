@@ -84,12 +84,12 @@ router.get("/:userId/history", async (req, res): Promise<any> => {
   }
 });
 
-router.get("/totalPaidByPatient/:patientId", async (req, res) => {
+router.get("/totalPaidByPatient/:userId", async (req, res) => {
   try {
-    const { patientId } = req.params;
+    const { userId } = req.params;
 
     const payments = await Payment.find({
-      patientId,
+      $or: [{ patientId: userId }, { doctorId: userId }],
       status: "completed",
     });
 
