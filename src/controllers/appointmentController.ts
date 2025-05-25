@@ -26,7 +26,7 @@ export const getAppointmentsByUserId = async (req: Request, res: Response) => {
     })
       .populate("patientId", "name email profileImageUrl")
       .populate("doctorId", "name email specialization profileImageUrl")
-      .sort({ date: 1 });
+      .sort({ date: -1 });
 
     res.json(appointments);
   } catch (err) {
