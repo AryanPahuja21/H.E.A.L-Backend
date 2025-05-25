@@ -94,7 +94,7 @@ router.get("/totalPaidByPatient/:patientId", async (req, res) => {
     });
 
     const totalPaid = payments.reduce(
-      (sum, payment) => sum + payment.amount,
+      (sum, payment) => sum + (payment.amount ?? 0),
       0
     );
 

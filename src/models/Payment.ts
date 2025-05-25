@@ -1,11 +1,10 @@
 import mongoose, { Schema } from "mongoose";
 
 const paymentSchema = new Schema({
-  patientId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  doctorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  patientId: { type: Schema.Types.ObjectId, ref: "User" },
+  doctorId: { type: Schema.Types.ObjectId, ref: "User" },
   amount: {
     type: Number,
-    required: true,
   },
   date: {
     type: Date,
@@ -18,12 +17,10 @@ const paymentSchema = new Schema({
   },
   type: {
     type: String,
-    required: true,
   },
   method: {
     type: String,
     enum: ["card", "bank", "cash"],
-    required: true,
   },
 });
 
